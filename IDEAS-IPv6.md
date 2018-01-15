@@ -1,4 +1,4 @@
-Inadyn planning of IPv6 support
+Inadyn Planning of IPv6 Support
 ===============================
 
 ## What Works Already ##
@@ -58,6 +58,16 @@ Trying to describe the program's function as abstract as possible:
     workaround.
   * Will focus on the common IPv4 and IPv6 record types.
 
+* Reuse already determined IP addresses for different providers?
+  * Certainly if the same ```iface``` option is used.
+  * Possibly if ```checkip-*``` settings match (unlikely, but a common
+    ```checkip-command``` makes sense).
+  * Move IP address detection out of provider config altogether into
+    their own "detector" sections, and just reference those for each
+    provider?  This would make backward-compatibility and provider
+    defaults handling rather easy.  Linking from the provider sections
+    still needs to happen for IPv4 and / or IPv6 separately.
+
 
 ## Configuration Syntax ##
 
@@ -82,7 +92,7 @@ Trying to describe the program's function as abstract as possible:
    settings.
 
 
-### Config Options as Lists ###
+### Option 1: Config Options as Lists ###
 
 Extend the ```checkip-*``` and ```iface``` options to use lists for
 multiple record types.
@@ -103,7 +113,7 @@ Example:
 	addrtype = { ipv6, ipv4 } # defaults to only a single ipv4 entry, backwards-compatible
 
 
-### Nested Record Sections ###
+### Option 2: Nested Record Sections ###
 
 Add any number of "record" sections within each provider section.
 Each one describes where to get the corresponding address from.
@@ -127,16 +137,74 @@ Each one describes where to get the corresponding address from.
 
 Examples:
 
-	record { # explicit IPv6 from command
-		addrtype = ipv6
-		checkip-command = ...
+	provider foo {
+		...
+		record { # explicit IPv6 from command
+			addrtype = ipv6
+			checkip-command = ...
+		}
+		record v4 { # explicit IPv4 (section title) from HTTP request
+			checkip-server = ...
+			checkip-path = ...
+			checkip-ssl = no
+		}
+		record { # implicit address type from HTTP response
+			checkip-server = ipv6.example.net
+		}
+		record mx { iface = ... } # possible future extension
 	}
-	record v4 { # explicit IPv4 (section title) from HTTP request
-		checkip-server = ...
+
+
+### Option 3: Externally Linked Detector Sections ###
+
+Add any number of "detector" sections outside of provider sections.
+Each one describes where to get the corresponding address from.
+
+* Very similar to Option 2's "record" sections.
+* Use the section title to name an address for later reference.
+
+* Fall-back for current option names within provider sections, they
+  are automatically translated to a "detector" section with a local
+  reference and use auto-detected address family.
+  * If a proper "detector" reference is present, the fall-backs are no
+    longer allowed.
+
+Examples:
+
+	detector v6-script { # explicit IPv6 from command
+		addrtype = ipv6
+		checkip-command = ...		# fails at runtime when the result is not valid IPv6
+	}
+	detector foodns { # implicit address type from HTTP response
+		checkip-server = checkip.foodns.net
 		checkip-path = ...
 		checkip-ssl = no
 	}
-	record { # implicit address type from HTTP response
-		checkip-server = ipv6.example.net
+	detector my-wifi-v4 { # explicit IPv4 from interface
+		addrtype = ipv4
+		iface = wlan0
 	}
-	record mx { iface = ... } # possible future extension
+
+	provider foodns.net {
+		username = ...
+		password = ...
+		hostname = my.very.special.name
+		detect-ipv6 = foodns		# fails at runtime when the result is not valid IPv6
+		detect-ipv4 = my-wifi-v4
+		checkip-command = ...		# this would trigger an error
+	}
+
+	provider backwards-compatible.com {
+		username = ...
+		password = ...
+		hostname = ...
+		checkip-command = ...		# equivalent to a corresponding "detector" section
+	}
+
+	provider reuse.org {
+		username = ...
+		password = ...
+		hostname = ... 
+		detect-ipv6 = v6-script		# special selection of local IPv6 address
+		detect-ipv4 = foodns		# reuse.org may be unreliable, reuse foodns.net instead
+	}
