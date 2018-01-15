@@ -101,7 +101,6 @@ multiple record types.
   and IPv4 addresses.
 * Need matching ```checkip-path``` setting per server.
 * Cannot easily mix ```checkip-*``` and ```iface``` options.
-* Not backwards-compatible because lists always need the curly braces.
 * Lists can provide unlimited entries, we only need a predefined set
   (of currently two).
 
