@@ -3,10 +3,10 @@ Inadyn Planning of IPv6 Support
 
 ## What Works Already ##
 
-* If ```checkip-server``` or ```checkip-command``` return an IPv6
-  address, it can be used to update IPv6-only hostnames.
-* The ```iface``` option may find an interface's IPv6 address, if
-  that's the only address family (rare).
+* If `checkip-server` or `checkip-command` return an IPv6 address, it
+  can be used to update IPv6-only hostnames.
+* The `iface` option may find an interface's IPv6 address, if that's
+  the only address family (rare).
 
 
 ## Current IPv6 Support Problems ##
@@ -14,8 +14,8 @@ Inadyn Planning of IPv6 Support
 * Cannot determine two different addresses to use for one update
   request.
 * DNS lookup for cache preseeding is currently IPv4-only
-* The ```iface``` option might return a "temporary" address used for
-  IPv6 Privacy Extensions, which is not useful for dynamic DNS.
+* The `iface` option might return a "temporary" address used for IPv6
+  Privacy Extensions, which is not useful for dynamic DNS.
 
 
 ## Basic Assumptions ##
@@ -45,23 +45,22 @@ Trying to describe the program's function as abstract as possible:
   * If checkip / iface result matches any of them, skip update
 
 * Which parameter to use in the update protocol is provider specific.
-  The ```myip``` parameter usually accepts any string valid for the
-  named record type.  Only if multiple address types should be
-  updated, additional parameters must be supplied (e.g. ```myipv6```)
+  The `myip` parameter usually accepts any string valid for the named
+  record type.  Only if multiple address types should be updated,
+  additional parameters must be supplied (e.g. `myipv6`)
 
 * This could be extended for future support of MX or other record
   types, BUT:
   * MX and other records are not supported by getaddrinfo(), so cache
     preseeding is a totally different story.
   * This is a very special and very provider-specific use-case,
-    already covered by ```ddns-path``` with placeholders as a
-    workaround.
+    already covered by `ddns-path` with placeholders as a workaround.
   * Will focus on the common IPv4 and IPv6 record types.
 
 * Reuse already determined IP addresses for different providers?
-  * Certainly if the same ```iface``` option is used.
-  * Possibly if ```checkip-*``` settings match (unlikely, but a common
-    ```checkip-command``` makes sense).
+  * Certainly if the same `iface` option is used.
+  * Possibly if `checkip-*` settings match (unlikely, but a common
+    `checkip-command` makes sense).
   * Move IP address detection out of provider config altogether into
     their own "detector" sections, and just reference those for each
     provider?  This would make backward-compatibility and provider
@@ -73,34 +72,33 @@ Trying to describe the program's function as abstract as possible:
 
 1. How to specify what records to update?  (especially when using
    provider's default checkip settings)
-  * Supersede the global ```allow-ipv6``` setting?
-  * Give each provider section a list option ```{ "ipv4", "ipv6" }```.
+  * Supersede the global `allow-ipv6` setting?
+  * Give each provider section a list option `{ "ipv4", "ipv6" }`.
     Looks rather complicated.
-  * Individual ```use-ipv4``` and ```use-ipv6``` boolean settings, at
-    least one must be true.  Mirrored in provider info structure with
+  * Individual `use-ipv4` and `use-ipv6` boolean settings, at least
+    one must be true.  Mirrored in provider info structure with
     defaults.  Defaults are backward-compatible for IPv4 only case.
-  * Only one option ```addrtype = ipv4 | ipv6 | both```.  Not
-    extensible to other record types.
+  * Only one option `addrtype = ipv4 | ipv6 | both`.  Not extensible
+    to other record types.
 
-2. ```checkip-*``` implicitly defines address type from the server's
+2. `checkip-*` implicitly defines address type from the server's
    response.
 
-3. ```iface``` option should be available for each provider section
-   instead of globally, as an equal alternative to ```checkip-*```
+3. `iface` option should be available for each provider section
+   instead of globally, as an equal alternative to `checkip-*`
 
-4. IPv6 and IPv4 may need different ```checkip-*``` or ```iface```
-   settings.
+4. IPv6 and IPv4 may need different `checkip-*` or `iface` settings.
 
 
 ### Option 1: Config Options as Lists ###
 
-Extend the ```checkip-*``` and ```iface``` options to use lists for
-multiple record types.
+Extend the `checkip-*` and `iface` options to use lists for multiple
+record types.
 
-* Make ```checkip-server``` a list and see if we can collect both IPv6
-  and IPv4 addresses.
-* Need matching ```checkip-path``` setting per server.
-* Cannot easily mix ```checkip-*``` and ```iface``` options.
+* Make `checkip-server` a list and see if we can collect both IPv6 and
+  IPv4 addresses.
+* Need matching `checkip-path` setting per server.
+* Cannot easily mix `checkip-*` and `iface` options.
 * Lists can provide unlimited entries, we only need a predefined set
   (of currently two).
 
@@ -114,22 +112,22 @@ Example:
 
 ### Option 2: Nested Record Sections ###
 
-Add any number of "record" sections within each provider section.
+Add any number of `record` sections within each provider section.
 Each one describes where to get the corresponding address from.
 
-* Each section contains ```checkip-*``` or ```iface``` options.  Error
-  if multiple sources are defined in one "record" section.
-* Optionally force the expected IP address family with an ```addrtype```
+* Each section contains `checkip-*` or `iface` options.  Error if
+  multiple sources are defined in one `record` section.
+* Optionally force the expected IP address family with an `addrtype`
   option.  Bail out if the determined address does not fit.
 * Or use the section title to specify the address family?  If it can
   be optional, leave it out for auto detection, otherwise specify
-  ```auto```.
+  `auto`.
 
-* Fall-back for current option names, they are treated as a "record"
+* Fall-back for current option names, they are treated as a `record`
   section with auto-detected address family.
-  * Could also handle the ```addrtype``` option this way to force the
-    type if only one should be used.
-  * If a proper "record" section is present, the fall-backs are no
+  * Could also handle the `addrtype` option this way to force the type
+    if only one should be used.
+  * If a proper `record` section is present, the fall-backs are no
     longer allowed.
 
 * Reusable to implement MX record support later as well?
@@ -154,32 +152,36 @@ Examples:
 	}
 
 
-### Option 3: Externally Linked Detector Sections ###
+### Option 3: Externally Linked CheckIP Sections ###
 
-Add any number of "detector" sections outside of provider sections.
+Add any number of `checkip` sections outside of provider sections.
 Each one describes where to get the corresponding address from.
 
-* Very similar to Option 2's "record" sections.
+* Very similar to Option 2's `record` sections.
 * Use the section title to name an address for later reference.
+* Associate the `checkip` sections to record types by naming them in a
+  `ipv4-source` or `ipv6-source` option.
+  * Several references can be listed to have a fail-safe when the
+    first one did not work.
 
-* Fall-back for current option names within provider sections, they
-  are automatically translated to a "detector" section with a local
+* Fall-back for current option names within `provider` sections, they
+  are automatically translated to a `checkip` section with a local
   reference and use auto-detected address family.
-  * If a proper "detector" reference is present, the fall-backs are no
-    longer allowed.
+  * If a proper `ipv*-source` reference is present, the fall-backs are
+    no longer allowed.
 
 Examples:
 
-	detector v6-script { # explicit IPv6 from command
+	checkip v6-script { # explicit IPv6 from command
 		addrtype = ipv6
-		checkip-command = ...		# fails at runtime when the result is not valid IPv6
+		command = ...				# fails at runtime when the result is not valid IPv6
 	}
-	detector foodns { # implicit address type from HTTP response
-		checkip-server = checkip.foodns.net
-		checkip-path = ...
-		checkip-ssl = no
+	checkip foodns { # implicit address type from HTTP response
+		server = checkip.foodns.net
+		path = ...
+		ssl = no
 	}
-	detector my-wifi-v4 { # explicit IPv4 from interface
+	checkip my-wifi-v4 { # explicit IPv4 from interface
 		addrtype = ipv4
 		iface = wlan0
 	}
@@ -188,8 +190,8 @@ Examples:
 		username = ...
 		password = ...
 		hostname = my.very.special.name
-		detect-ipv6 = foodns		# fails at runtime when the result is not valid IPv6
-		detect-ipv4 = my-wifi-v4
+		ipv6-source = foodns		# fails at runtime when the result is not valid IPv6
+		ipv4-source = my-wifi-v4
 		checkip-command = ...		# this would trigger an error
 	}
 
@@ -197,13 +199,14 @@ Examples:
 		username = ...
 		password = ...
 		hostname = ...
-		checkip-command = ...		# equivalent to a corresponding "detector" section
+		checkip-command = ...		# equivalent to a corresponding "checkip" section
 	}
 
 	provider reuse.org {
 		username = ...
 		password = ...
 		hostname = ... 
-		detect-ipv6 = v6-script		# special selection of local IPv6 address
-		detect-ipv4 = foodns		# reuse.org may be unreliable, reuse foodns.net instead
+		ipv6-source = { v6-script,	# special selection of local IPv6 address,
+		                foodns }    # with fallback to foodns' server
+		ipv4-source = foodns		# reuse.org may be unreliable, reuse foodns.net instead
 	}
